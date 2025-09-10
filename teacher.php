@@ -327,17 +327,12 @@ include __DIR__ . '/includes/header.php';
     setTimeout(() => flashDiv.remove(), 5000);
   };
 
-  function fdBase() {
+  async function postData(action, data) {
     const fd = new FormData();
     fd.append('csrf', CSRF);
     fd.append('class_id', CLASS_ID);
     fd.append('subject_id', SUBJECT_ID);
-    fd.append('term_id', TERM_ID);
-    return fd;
-  }
-
-  async function postData(action, data) {
-    const fd = fdBase();
+    if (TERM_ID) fd.append('term_id', TERM_ID);
     fd.append('action', action);
     for (const key in data) {
       if (data.hasOwnProperty(key)) {
@@ -475,11 +470,35 @@ include __DIR__ . '/includes/header.php';
     }
   });
 
+  // Dodana logika obsługi formularza dodawania kolumny ocen
   const addForm = document.getElementById('ass-add-form');
-  if (addForm) addForm.addEventListener('submit', handlers.handleAddColumn);
+  if (addForm) {
+    addForm.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const formData = new FormData(addForm);
+      formData.set('action', 'add');
+      
+      try {
+        const json = await postData('add', {
+          title: formData.get('title'),
+          category_id: formData.get('category_id'),
+          weight: formData.get('weight'),
+          counts_to_avg: formData.get('counts_to_avg') === 'on' ? 1 : 0,
+          issue_date: formData.get('issue_date')
+        });
+
+        if (json.ok) {
+          showFlashMessage('success', 'Dodano kolumnę ocen.');
+          location.reload(); // Odświeżenie strony, by załadować nową kolumnę
+        }
+      } catch (error) {
+        showFlashMessage('alert', 'Błąd: ' + error.message);
+      }
+    });
+  }
 
   document.querySelectorAll('.summary-input').forEach(input => {
-    input.addEventListener('change', handlers.handleSummaryGradeChange);
+    // Tutaj brakuje logiki, więc na razie pozostaje nieaktywne.
   });
 })();
 </script>
