@@ -45,7 +45,9 @@ if (empty($errors)) {
             'last_name' => $user['last_name'],
             'roles' => $roles
         ];
-
+		if (in_array('nauczyciel', $roles)) {
+        $_SESSION['teacher_id'] = (int)$user['id'];
+		}
         $base = rtrim(str_replace('\\','/', dirname($_SERVER['PHP_SELF'])), '/');
         if ($base === '') { $base = '.'; }
         header("Location: $base/dashboard.php");
