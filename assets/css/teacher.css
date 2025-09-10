@@ -1,0 +1,49 @@
+/* assets/css/teacher.css — moduł nauczyciela */
+.container{ max-width:1320px; margin-inline:auto; padding:2rem 1.25rem; }
+.t-card{ width:min(1280px,88vw); margin:1rem auto; background:#fff; border:1px solid var(--app-border); border-radius:16px; box-shadow:0 14px 34px rgba(0,0,0,.06); }
+.t-card .head{ display:flex; gap:1rem; align-items:end; padding:1rem 1.25rem 0; flex-wrap:wrap; }
+.t-card h1{ margin:0 0 .5rem; }
+
+.t-toolbar{ display:flex; gap:.6rem; flex-wrap:wrap; padding:0 1.25rem 1rem; }
+.t-toolbar .input-wrap{ min-width:220px; }
+
+.grd-wrap{ overflow:auto; padding:0 1.25rem 1rem; }
+.grd{ width:100%; border-collapse:separate; border-spacing:0; }
+.grd th, .grd td{ border:1px solid var(--app-border); padding:.45rem .5rem; vertical-align:top; }
+.grd thead th{ position:sticky; top:0; background:#f3f4f6; z-index:1; }
+.grd .sticky{ position:sticky; left:0; background:#fff; z-index:2; }
+.grd .student{ white-space:nowrap; font-weight:700; }
+.grd .avg{ text-align:center; font-weight:800; background:#f8fafc; }
+
+.ass-head{ display:flex; align-items:center; gap:.35rem; }
+.ass-color{ width:10px; height:10px; border-radius:2px; display:inline-block; border:1px solid #e5e7eb; }
+.ass-meta{ display:block; color:#6b7280; font-size:.85rem; line-height:1.15; }
+
+.cell{ min-width:110px; }
+.pill{ display:inline-block; min-width:26px; text-align:center; margin:.12rem; padding:.12rem .35rem; border-radius:6px; background:#eef2ff; border:1px solid #e5e7eb; font-weight:800; }
+.pill.impr::after{ content:" ↻"; font-weight:900; opacity:.7; }
+
+/* tryb edycji w komórce */
+.cell .edit-inline{ display:none; }
+.cell.editing .view{ display:none; }
+.cell.editing .edit-inline{ display:block; }
+.cell.editing { background:#fff; box-shadow: inset 0 0 0 2px #e5e7eb; }
+
+/* żeby edycja miała miejsce na kontrolki */
+.cell .input-wrap { margin:.25rem 0; }
+.qg{ display:flex; flex-wrap:wrap; gap:.25rem; margin-top:.25rem; }
+.qg button{ border:1px solid var(--app-border); background:#fff; padding:.15rem .4rem; border-radius:6px; cursor:pointer; }
+.qg button:hover{ background:#f3f4f6; }
+
+.t-sep{ height:1px; background:#e5e7eb; margin:.6rem 0; }
+
+.badge-soft{ background:#dbeafe; border:1px solid #bfdbfe; border-radius:6px; padding:.12rem .35rem; font-weight:800; }
+
+.colors{ display:flex; gap:.35rem; flex-wrap:wrap; }
+.colors label{ display:inline-grid; grid-auto-flow:column; gap:.35rem; align-items:center; border:1px solid var(--app-border); border-radius:10px; padding:.25rem .45rem; cursor:pointer; }
+.colors input{ margin:0; }
+
+.small-muted{ color:#6b7280; font-size:.92rem; }
+
+.h1row{ display:flex; align-items:center; gap:.75rem; justify-content:space-between; }
+.h1row .right{ display:flex; gap:.6rem; align-items:center; }

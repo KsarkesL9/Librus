@@ -1,0 +1,55 @@
+/* assets/css/admin.css — styl panelu admina */
+
+.admin-tabs{ display:flex; gap:.5rem; margin:.25rem 0 1rem; flex-wrap:wrap; }
+.admin-tab{
+  border:1px solid var(--app-border); background:#fff; color:#111827;
+  padding:.6rem .9rem; border-radius:10px; font-weight:800; cursor:pointer;
+}
+.admin-tab.active{ background:#eef2ff; border-color:#c7d2fe; }
+.admin-panel.hidden{ display:none; }
+
+.table-wrap{ overflow:auto; }
+.adm-table{ width:100%; border-collapse:separate; border-spacing:0; }
+.adm-table thead th{ background:#f3f4f6; border:1px solid var(--app-border); padding:.5rem .6rem; text-align:left; }
+.adm-table tbody td{ border:1px solid var(--app-border); padding:.45rem .6rem; }
+
+.inline{ display:inline; }
+.btn.small{ padding:.5rem .7rem; border-radius:10px; font-size:.92rem; }
+.btn.danger{ background:#fee2e2; border-color:#fecaca; color:#7f1d1d; }
+.btn.danger:hover{ background:#fecaca; }
+
+/* --- DnD sekcja --- */
+.dnd-grid{ align-items:start; }
+.students-list, .roster-list{
+  list-style:none; margin: .6rem 0 0 0; padding:0; 
+  border:1px solid var(--app-border); border-radius:10px; background:#fff;
+  max-height:460px; overflow:auto;
+}
+.student-item, .roster-item{
+  display:flex; align-items:center; gap:.6rem;
+  padding:.55rem .6rem; border-bottom:1px solid #f1f5f9;
+}
+.student-item:last-child, .roster-item:last-child{ border-bottom:0; }
+.student-item.dragging{ opacity:.6; }
+.avatar-sm{
+  width:30px; height:30px; border-radius:999px; background:#e5e7eb; display:grid; place-items:center;
+}
+.avatar-sm svg{ width:18px; height:18px; color:#6b7280; }
+.primary{ font-weight:700; }
+.small{ font-size:.92rem; }
+.pad{ padding:.8rem; }
+
+.dropzone{
+  border:2px dashed #cbd5e1; border-radius:12px; background:#f8fafc; padding:.6rem;
+  transition: background .15s ease, border-color .15s ease;
+}
+.dropzone.dragover{ background:#eef6ff; border-color:#93c5fd; }
+.dropzone .hint{
+  margin:.2rem .2rem .4rem; color:#64748b; font-size:.95rem;
+}
+.icon-btn{
+  margin-left:auto; border:0; background:transparent; cursor:pointer;
+  width:34px; height:34px; border-radius:8px; display:grid; place-items:center;
+}
+.icon-btn:hover{ background:#fee2e2; }
+.icon-btn svg{ width:18px; height:18px; color:#991b1b; }
