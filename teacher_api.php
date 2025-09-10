@@ -1,5 +1,5 @@
 <?php
-// teacher_api.php - Wersja z nową logiką biznesową (poprawa tylko raz, usuwanie parami)
+// teacher_api.php - OSTATECZNA WERSJA z kompletną logiką i lepszym debugowaniem
 require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/config/db.php';
 
@@ -33,6 +33,8 @@ try {
 
     switch ($action) {
         
+        // --- LOGIKA DLA OKNA "Wystaw / Dodaj kolumnę" ---
+
         case 'ass_add_column':
             $title = trim($input['title'] ?? '');
             if (empty($title)) throw new Exception('Tytuł kolumny jest wymagany.');
@@ -78,20 +80,14 @@ try {
             echo json_encode(['ok' => true, 'message' => 'Pojedyncza ocena została dodana.']);
             break;
 
+        // --- LOGIKA DLA OKNA EDYCJI (z plusika) ---
+
         case 'grade_add_or_improve':
             $assId = (int)($input['assessment_id'] ?? 0);
             $studentId = (int)($input['student_id'] ?? 0);
             $valueText = trim($input['value_text'] ?? '');
-            if (!$assId || !$studentId || $valueText === '') throw new Exception('Brak danych do dodania oceny.');
+            if (!$assId || !$studentId || $valueText === '') throw new Exception('Brak danych do dodania oceny (assId, studId, ocena).');
 
-            $countStmt = $pdo->prepare("SELECT COUNT(*) FROM grades WHERE student_id = ? AND assessment_id = ?");
-            $countStmt->execute([$studentId, $assId]);
-            $currentGradeCount = $countStmt->fetchColumn();
-
-            if ($currentGradeCount >= 2) {
-                throw new Exception('Ocena została już poprawiona i nie można jej dalej modyfikować.');
-            }
-            
             $ass = $pdo->prepare("SELECT * FROM assessments WHERE id = ? AND teacher_id = ?");
             $ass->execute([$assId, $teacherId]);
             $assessment = $ass->fetch();
@@ -123,17 +119,9 @@ try {
             $gradeId = (int)($input['grade_id'] ?? 0);
             if (!$gradeId) throw new Exception('Brak ID oceny do usunięcia.');
             
-            $gradeInfoStmt = $pdo->prepare("SELECT student_id, assessment_id FROM grades WHERE id = ? AND teacher_id = ?");
-            $gradeInfoStmt->execute([$gradeId, $teacherId]);
-            $gradeInfo = $gradeInfoStmt->fetch();
-
-            if ($gradeInfo) {
-                $deleteStmt = $pdo->prepare("DELETE FROM grades WHERE student_id = ? AND assessment_id = ?");
-                $deleteStmt->execute([$gradeInfo['student_id'], $gradeInfo['assessment_id']]);
-                echo json_encode(['ok' => true, 'message' => 'Ocena (wraz z poprawą) została usunięta.']);
-            } else {
-                throw new Exception('Nie znaleziono oceny do usunięcia lub brak uprawnień.');
-            }
+            $stmt = $pdo->prepare("DELETE FROM grades WHERE id = ? AND teacher_id = ?");
+            $stmt->execute([$gradeId, $teacherId]);
+            echo json_encode(['ok' => true, 'message' => 'Ocena została usunięta.']);
             break;
 
         default:
@@ -146,6 +134,8 @@ try {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    http_response_code(400);
+    http_response_code(400); // Zwracamy 400, bo to błąd zapytania
+    // Zwracamy dokładny komunikat błędu w JSON, co ułatwi debugowanie
     echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+    exit;
 }

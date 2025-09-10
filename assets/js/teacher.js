@@ -8,9 +8,6 @@
         const height = isLarge ? 800 : 450;
         const features = `width=${width},height=${height},scrollbars=yes,resizable=yes`;
         
-        // --- KROK 1: Wyświetl alert z adresem URL ---
-        alert("DEBUG: Otwieram okno z adresem:\n" + url);
-        
         window.open(url, 'gradeEditWindow', features);
     };
 
