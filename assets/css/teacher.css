@@ -16,41 +16,55 @@
 .grd .avg{ text-align:center; font-weight:800; background:#f8fafc; }
 
 .ass-head{ display:flex; align-items:center; gap:.35rem; }
-.ass-color{ width:10px; height:10px; border-radius:2px; display:inline-block; border:1px solid #e5e7eb; }
 .ass-meta{ display:block; color:#6b7280; font-size:.85rem; line-height:1.15; }
 
-.cell{ min-width:110px; }
-.pill{ display:inline-block; min-width:26px; text-align:center; margin:.12rem; padding:.12rem .35rem; border-radius:6px; background:#eef2ff; border:1px solid #e5e7eb; font-weight:800; }
-.pill.impr::after{ content:" ↻"; font-weight:900; opacity:.7; }
-
-/* Poprawione reguły dla trybu edycji */
-.cell .view {
-    display: block;
-}
-.cell .edit-form {
-    display: none;
-}
-/* Upewnij się, że ten selektor działa w Twoim HTML-u */
-.cell .edit-form {
-    display: block;
-}
-
-
-/* pozostałe style */
-.cell .input-wrap { margin:.25rem 0; }
-.qg{ display:flex; flex-wrap:wrap; gap:.25rem; margin-top:.25rem; }
-.qg button{ border:1px solid var(--app-border); background:#fff; padding:.15rem .4rem; border-radius:6px; cursor:pointer; }
-.qg button:hover{ background:#f3f4f6; }
+.cell{ min-width:110px; text-align: center; position: relative; }
+.pill{ display:inline-block; min-width:26px; text-align:center; margin:.12rem; padding:.12rem .35rem; border-radius:6px; background:#eef2ff; border:1px solid #e5e7eb; font-weight:800; cursor: pointer; }
 
 .t-sep{ height:1px; background:#e5e7eb; margin:.6rem 0; }
-
 .badge-soft{ background:#dbeafe; border:1px solid #bfdbfe; border-radius:6px; padding:.12rem .35rem; font-weight:800; }
-
-.colors{ display:flex; gap:.35rem; flex-wrap:wrap; }
-.colors label{ display:inline-grid; grid-auto-flow:column; gap:.35rem; align-items:center; border:1px solid var(--app-border); border-radius:10px; padding:.25rem .45rem; cursor:pointer; }
-.colors input{ margin:0; }
-
 .small-muted{ color:#6b7280; font-size:.92rem; }
-
 .h1row{ display:flex; align-items:center; gap:.75rem; justify-content:space-between; }
 .h1row .right{ display:flex; gap:.6rem; align-items:center; }
+.form-actions { margin-top: 1rem; display: flex; gap: 0.5rem; justify-content: flex-end; }
+
+.add-grade-plus {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    color: #64748b;
+    cursor: pointer;
+    font-weight: bold;
+    margin-left: 5px;
+    vertical-align: middle;
+}
+.add-grade-plus:hover {
+    background: #e2e8f0;
+    border-color: #94a3b8;
+}
+.add-grade-plus.improve {
+    display: none; /* Ukryty, bo kontener go zastępuje */
+}
+
+.grade-container {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+.grade-container .add-grade-plus.improve {
+    display: inline-flex; /* Pokazujemy plusa w kontenerze */
+    position: static;
+}
+.grade-arrow {
+    font-weight: bold;
+    color: #64748b;
+}
+.pill.improved {
+    border-style: dashed;
+    border-color: #94a3b8;
+}
