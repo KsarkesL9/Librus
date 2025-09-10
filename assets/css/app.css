@@ -129,15 +129,43 @@ h1{ color:#0f172a; margin: .2rem 0 1rem 0; font-size:1.6rem; }
 
 /* tooltip dla ocen (jasny) */
 .grade-tooltip{
-  position:fixed; transform:translate(-9999px,-9999px);
-  pointer-events:none; z-index:99; max-width:320px;
-  background:#0f172a; color:#fff; border:1px solid rgba(255,255,255,.15);
-  border-radius:10px; padding:.65rem .8rem; box-shadow:0 14px 42px rgba(0,0,0,.35);
+  position: fixed;               /* Pozycjonowanie względem okna przeglądarki */
+  z-index: 9999;
+  background: var(--app-bg);     /* Jasno szare tło */
+  color: #374151;                /* Ciemny tekst */
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  padding: .65rem .8rem;
+  box-shadow: 0 14px 42px rgba(0,0,0,.06);
+  max-width: 320px;
+  height: auto;
+  pointer-events: none;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity .2s ease;
 }
-.grade-tooltip.hidden{ display:none; }
-.grade-tooltip .row{ display:flex; justify-content:space-between; gap:.8rem; padding:.15rem 0; border-bottom:1px dashed rgba(255,255,255,.12) }
-.grade-tooltip .row:last-child{ border-bottom:0 }
-.grade-tooltip .row span{ opacity:.85 }
+
+/* Klasy do kontrolowania widoczności przez JS */
+.grade-tooltip.visible {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Ukrywa tooltip, gdy nie jest potrzebny */
+.grade-tooltip.hidden {
+  display: none !important;
+}
+
+/* Style wewnętrzne */
+.grade-tooltip .row{ 
+  display: flex; 
+  justify-content: space-between; 
+  gap: .8rem; 
+  padding: .15rem 0; 
+  border-bottom: 1px dashed var(--app-border); 
+}
+.grade-tooltip .row:last-child{ border-bottom: 0; }
+.grade-tooltip .row strong{ font-weight: bold; }
 
 /* drobne poprawki formularzy w app */
 .form .input-wrap{ background:#fff; }

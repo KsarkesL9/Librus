@@ -14,44 +14,53 @@ if (!$user || !in_array('uczeń', $user['roles'] ?? [])) {
 
 $APP_BODY_CLASS = 'app'; // włącza jasny motyw app.css
 
-// Aktywny rok i okresy
-$year = $pdo->query("SELECT * FROM school_years WHERE is_active=1 ORDER BY id DESC LIMIT 1")->fetch();
-if ($year) {
-    $termsStmt = $pdo->prepare("SELECT * FROM terms WHERE school_year_id = :y ORDER BY ordinal");
-    $termsStmt->execute([':y' => $year['id']]);
-    $terms = $termsStmt->fetchAll();
-} else {
-    $terms = $pdo->query("SELECT * FROM terms ORDER BY ordinal")->fetchAll();
-}
-$hasTwoTerms = count($terms) >= 2;
-
-// Klasa ucznia (ostatni zapis)
-$clsStmt = $pdo->prepare("SELECT c.* FROM enrollments e JOIN school_classes c ON c.id=e.class_id WHERE e.student_id=:sid ORDER BY e.id DESC LIMIT 1");
-$clsStmt->execute([':sid' => $user['id']]);
-$class = $clsStmt->fetch();
-
-// Lista przedmiotów
+// --- DODANE DEBUGOWANIE ---
 $subjects = [];
-if ($class) {
-    $subStmt = $pdo->prepare("SELECT DISTINCT s.id, s.name
-                              FROM teacher_subjects ts
-                              JOIN subjects s ON s.id = ts.subject_id
-                              WHERE ts.class_id = :cid
-                              ORDER BY s.name");
-    $subStmt->execute([':cid' => $class['id']]);
-    $subjects = $subStmt->fetchAll();
-}
-if (!$subjects) {
-    $subStmt = $pdo->prepare("SELECT DISTINCT s.id, s.name
-                              FROM grades g
-                              JOIN subjects s ON s.id = g.subject_id
-                              WHERE g.student_id = :sid
-                              ORDER BY s.name");
-    $subStmt->execute([':sid' => $user['id']]);
-    $subjects = $subStmt->fetchAll();
+$class = null;
+$terms = [];
+try {
+  // Aktywny rok i okresy
+  $year = $pdo->query("SELECT * FROM school_years WHERE is_active=1 ORDER BY id DESC LIMIT 1")->fetch();
+  if ($year) {
+      $termsStmt = $pdo->prepare("SELECT * FROM terms WHERE school_year_id = :y ORDER BY ordinal");
+      $termsStmt->execute([':y' => $year['id']]);
+      $terms = $termsStmt->fetchAll();
+  } else {
+      $terms = $pdo->query("SELECT * FROM terms ORDER BY ordinal")->fetchAll();
+  }
+  $hasTwoTerms = count($terms) >= 2;
+
+  // Klasa ucznia (ostatni zapis)
+  $clsStmt = $pdo->prepare("SELECT c.* FROM enrollments e JOIN school_classes c ON c.id=e.class_id WHERE e.student_id=:sid ORDER BY e.id DESC LIMIT 1");
+  $clsStmt->execute([':sid' => $user['id']]);
+  $class = $clsStmt->fetch();
+
+  // Lista przedmiotów
+  if ($class) {
+      $subStmt = $pdo->prepare("SELECT DISTINCT s.id, s.name
+                                FROM teacher_subjects ts
+                                JOIN subjects s ON s.id = ts.subject_id
+                                WHERE ts.class_id = :cid
+                                ORDER BY s.name");
+      $subStmt->execute([':cid' => $class['id']]);
+      $subjects = $subStmt->fetchAll();
+  }
+  if (!$subjects) {
+      $subStmt = $pdo->prepare("SELECT DISTINCT s.id, s.name
+                                FROM grades g
+                                JOIN subjects s ON s.id = g.subject_id
+                                WHERE g.student_id = :sid
+                                ORDER BY s.name");
+      $subStmt->execute([':sid' => $user['id']]);
+      $subjects = $subStmt->fetchAll();
+  }
+} catch (Throwable $e) {
+  // W przypadku błędu, wyświetl go na ekranie, aby go zdiagnozować
+  echo '<div class="alert" style="margin:2rem">Błąd bazy danych: '.htmlspecialchars($e->getMessage()).'</div>';
+  $subjects = []; // Ustaw puste, aby reszta strony się wygenerowała
 }
 
-// Pomocnicze
+// Pomocnicze funkcje (bez zmian)
 function pillColor(string $val, ?string $catColor): string {
     if ($catColor) return $catColor;
     $v = strtoupper(trim($val));
