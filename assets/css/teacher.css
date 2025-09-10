@@ -23,13 +23,20 @@
 .pill{ display:inline-block; min-width:26px; text-align:center; margin:.12rem; padding:.12rem .35rem; border-radius:6px; background:#eef2ff; border:1px solid #e5e7eb; font-weight:800; }
 .pill.impr::after{ content:" ↻"; font-weight:900; opacity:.7; }
 
-/* tryb edycji w komórce */
-.cell .edit-inline{ display:none; }
-.cell.editing .view{ display:none; }
-.cell.editing .edit-inline{ display:block; }
-.cell.editing { background:#fff; box-shadow: inset 0 0 0 2px #e5e7eb; }
+/* Poprawione reguły dla trybu edycji */
+.cell .view {
+    display: block;
+}
+.cell .edit-form {
+    display: none;
+}
+/* Upewnij się, że ten selektor działa w Twoim HTML-u */
+.cell .edit-form {
+    display: block;
+}
 
-/* żeby edycja miała miejsce na kontrolki */
+
+/* pozostałe style */
 .cell .input-wrap { margin:.25rem 0; }
 .qg{ display:flex; flex-wrap:wrap; gap:.25rem; margin-top:.25rem; }
 .qg button{ border:1px solid var(--app-border); background:#fff; padding:.15rem .4rem; border-radius:6px; cursor:pointer; }

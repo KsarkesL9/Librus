@@ -38,7 +38,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ass_add_fallback'])) 
   $weight     = max(0.01, (float)($_POST['weight'] ?? 1));
   $counts     = ($_POST['counts_to_avg'] ?? '1') === '1' ? 1 : 0;
   $issue_date = $_POST['issue_date'] ?: date('Y-m-d');
-  $color      = $_POST['color'] ?: null;
 
   $qsReload   = http_build_query([
     'class_id'=>$class_id, 'subject_id'=>$subject_id,
@@ -53,13 +52,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ass_add_fallback'])) 
   }
 
   $stmt = $pdo->prepare("INSERT INTO assessments
-      (teacher_id,class_id,subject_id,term_id,title,category_id,weight,counts_to_avg,color,issue_date)
-      VALUES (:t,:c,:s,:term,:title,:cat,:w,:cnt,:col,:dt)");
+  (teacher_id,class_id,subject_id,term_id,title,category_id,weight,counts_to_avg,issue_date)
+  VALUES (:t,:c,:s,:term,:title,:cat,:w,:cnt,:dt)");
   $stmt->execute([
-    ':t'=>$teacherId, ':c'=>$class_id, ':s'=>$subject_id, ':term'=>$term_id,
-    ':title'=>$title, ':cat'=>$category_id ?: null, ':w'=>$weight, ':cnt'=>$counts,
-    ':col'=>$color, ':dt'=>$issue_date
-  ]);
+  ':t'=>$teacherId, ':c'=>$class_id, ':s'=>$subject_id, ':term'=>$term_id,
+  ':title'=>$title, ':cat'=>$category_id ?: null, ':w'=>$weight, ':cnt'=>$counts,
+  ':dt'=>$issue_date
+]);
   header('Location: '.$_SERVER['PHP_SELF'].'?'.$qsReload);
   exit;
 }
@@ -128,9 +127,9 @@ if ($ass) {
 
 /* ===== średnie ważone (regular, counts_to_avg=1) ===== */
 function compute_avg_php(PDO $pdo, int $studentId, int $subjectId, ?int $termId): string {
-  $sql = "SELECT value_numeric, weight FROM grades
-          WHERE student_id=:st AND subject_id=:sub AND kind='regular' AND counts_to_avg=1".
-          ($termId ? " AND term_id=:term" : "");
+  $sql = "SELECT g.value_numeric, g.weight FROM grades g
+          WHERE g.student_id=:st AND g.subject_id=:sub AND g.kind='regular' AND g.counts_to_avg=1"
+          . ($termId ? " AND g.term_id=:term" : "");
   $stmt = $pdo->prepare($sql);
   $par = [':st'=>$studentId, ':sub'=>$subjectId];
   if ($termId) $par[':term']=$termId;
@@ -153,7 +152,8 @@ include __DIR__ . '/includes/header.php';
            data-api="<?php echo $BASE_URL; ?>/teacher_api.php"
            data-csrf="<?php echo csrf_token(); ?>"
            data-subject-id="<?php echo (int)$selectedSubjectId; ?>"
-           data-class-id="<?php echo (int)$selectedClassId; ?>">
+           data-class-id="<?php echo (int)$selectedClassId; ?>"
+           data-term-id="<?php echo $selectedTermId!==null?(int)$selectedTermId:''; ?>">
 
     <div class="head h1row">
       <div>
@@ -204,7 +204,6 @@ include __DIR__ . '/includes/header.php';
     </div>
 
     <div class="t-toolbar">
-      <!-- Fallback: jeśli JS nie zadziała, formularz zrobi POST do tego pliku -->
       <form id="ass-add-form" class="form" method="post" action="">
         <input type="hidden" name="ass_add_fallback" value="1">
         <input type="hidden" name="csrf" value="<?php echo csrf_token(); ?>">
@@ -225,10 +224,6 @@ include __DIR__ . '/includes/header.php';
         <div class="input-wrap">
           <label>Kolor</label>
           <div class="colors">
-            <?php foreach ($palette as $i=>$hex): ?>
-              <label><input type="radio" name="color" value="<?php echo $hex; ?>" <?php echo $i===0?'checked':''; ?>><span class="ass-color" style="background:<?php echo $hex; ?>"></span></label>
-            <?php endforeach; ?>
-            <label><input type="radio" name="color" value=""><span class="ass-color" style="background:#fff"></span> brak</label>
           </div>
         </div>
         <button class="btn primary" type="submit">Dodaj kolumnę</button>
@@ -243,7 +238,7 @@ include __DIR__ . '/includes/header.php';
             <?php foreach ($ass as $a): ?>
               <th>
                 <div class="ass-head">
-                  <span class="ass-color" style="background:<?php echo sanitize($a['color'] ?: '#fff'); ?>"></span>
+                  <span class="ass-color" data-title="<?php echo sanitize($a['title']); ?>"></span>
                   <strong><?php echo sanitize($a['title']); ?></strong>
                   <button class="icon-btn" title="Usuń kolumnę" data-del-ass="<?php echo (int)$a['id']; ?>">
                     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 3h6a1 1 0 0 1 1 1v1h4v2H4V5h4V4a1 1 0 0 1 1-1Zm-3 6h12l-1 11a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 9Z"/></svg>
@@ -259,20 +254,19 @@ include __DIR__ . '/includes/header.php';
         </thead>
         <tbody>
           <?php foreach ($students as $st): ?>
-            <tr>
+            <tr data-student-id="<?php echo (int)$st['id']; ?>">
               <th class="sticky student"><?php echo sanitize($st['last_name'].' '.$st['first_name']); ?></th>
               <?php foreach ($ass as $a):
                 $g = $gradesByAssSt[$a['id']][$st['id']] ?? null;
                 $display = $g ? $g['value_text'] : '';
-                $impr    = $g && $g['improved_of_id'] ? true : false;
+                $impr    = $g && $g['improved_of_id'] ? ' impr' : '';
               ?>
                 <td class="cell"
                     data-assessment-id="<?php echo (int)$a['id']; ?>"
-                    data-student-id="<?php echo (int)$st['id']; ?>"
                     data-grade-id="<?php echo $g ? (int)$g['id'] : ''; ?>">
                   <div class="view">
                     <?php if ($display!==''): ?>
-                      <span class="pill <?php echo $impr?'impr':''; ?>"><?php echo sanitize($display); ?><?php if ($impr) echo ' ↻'; ?></span>
+                      <span class="pill<?php echo $impr; ?>"><?php echo sanitize($display); ?><?php if ($impr) echo ' ↻'; ?></span>
                     <?php else: ?>
                       <span class="small-muted">—</span>
                     <?php endif; ?>
@@ -282,37 +276,23 @@ include __DIR__ . '/includes/header.php';
                       <button type="button" class="btn small del-btn">Usuń</button>
                     <?php endif; ?>
                   </div>
-                  <div class="edit-inline">
-                    <div class="input-wrap"><input class="input-grade" placeholder="np. 4+, 3, +, -" value="<?php echo $g?sanitize($g['value_text']):''; ?>"></div>
-                    <div class="qg">
-                      <?php foreach (['6','6+','5','5-','5+','4','4-','4+','3','3-','3+','2','2-','2+','1','1+','0','+','-'] as $q): ?>
-                        <button type="button" data-val="<?php echo $q; ?>"><?php echo $q; ?></button>
-                      <?php endforeach; ?>
-                    </div>
-                    <div class="input-wrap"><input class="input-comment" placeholder="Komentarz" value="<?php echo $g?sanitize($g['comment']):''; ?>"></div>
-                    <div class="qg">
-                      <button type="button" class="btn primary save-btn">Zapisz</button>
-					  <button type="button" class="btn cancel-btn">Anuluj</button>
-                    </div>
-                  </div>
                 </td>
               <?php endforeach; ?>
-              <td class="avg"><?php echo compute_avg_php($pdo,(int)$st['id'],$selectedSubjectId,$selectedTermId); ?></td>
-
+              <td class="avg" data-student-id="<?php echo (int)$st['id']; ?>"><?php echo compute_avg_php($pdo,(int)$st['id'],$selectedSubjectId,$selectedTermId); ?></td>
               <?php
                 $sum = function(string $kind) use($pdo,$st,$selectedSubjectId,$selectedClassId,$selectedTermId){
-                  $q="SELECT value_text FROM grades WHERE student_id=:st AND subject_id=:sub AND class_id=:cls AND kind=:k";
-                  $p=[':st'=>$st['id'],':sub'=>$selectedSubjectId,':cls'=>$selectedClassId,':k'=>$kind];
-                  if (strpos($kind,'midterm')===0) { $q.=" AND term_id=:term"; $p[':term']=$selectedTermId; }
-                  $q.=" ORDER BY created_at DESC LIMIT 1";
+                  $q="SELECT value_text FROM grades g WHERE g.student_id=:st AND g.subject_id=:sub AND g.kind=:k";
+                  $p=[':st'=>$st['id'],':sub'=>$selectedSubjectId,':k'=>$kind];
+                  if (strpos($kind,'midterm')===0) { $q.=" AND g.term_id=:term"; $p[':term']=$selectedTermId; }
+                  $q.=" ORDER BY g.created_at DESC LIMIT 1";
                   $s=$pdo->prepare($q); $s->execute($p); $r=$s->fetch();
                   return $r ? $r['value_text'] : '';
                 };
               ?>
-              <td><input class="input" data-summary-kind="midterm_proposed" data-student-id="<?php echo (int)$st['id']; ?>" value="<?php echo sanitize($sum('midterm_proposed')); ?>"></td>
-              <td><input class="input" data-summary-kind="midterm"          data-student-id="<?php echo (int)$st['id']; ?>" value="<?php echo sanitize($sum('midterm')); ?>"></td>
-              <td><input class="input" data-summary-kind="final_proposed"   data-student-id="<?php echo (int)$st['id']; ?>" value="<?php echo sanitize($sum('final_proposed')); ?>"></td>
-              <td><input class="input" data-summary-kind="final"            data-student-id="<?php echo (int)$st['id']; ?>" value="<?php echo sanitize($sum('final')); ?>"></td>
+              <td><input class="input summary-input" data-summary-kind="midterm_proposed" data-student-id="<?php echo (int)$st['id']; ?>" value="<?php echo sanitize($sum('midterm_proposed')); ?>"></td>
+              <td><input class="input summary-input" data-summary-kind="midterm"          data-student-id="<?php echo (int)$st['id']; ?>" value="<?php echo sanitize($sum('midterm')); ?>"></td>
+              <td><input class="input summary-input" data-summary-kind="final_proposed"   data-student-id="<?php echo (int)$st['id']; ?>" value="<?php echo sanitize($sum('final_proposed')); ?>"></td>
+              <td><input class="input summary-input" data-summary-kind="final"            data-student-id="<?php echo (int)$st['id']; ?>" value="<?php echo sanitize($sum('final')); ?>"></td>
             </tr>
           <?php endforeach; if (!$students): ?>
             <tr><td colspan="<?php echo count($ass)+5; ?>" class="small-muted">Brak uczniów w klasie.</td></tr>
@@ -320,11 +300,188 @@ include __DIR__ . '/includes/header.php';
         </tbody>
       </table>
     </div>
-
   </section>
 </main>
-<script src="<?php echo $BASE_URL; ?>/assets/js/teacher_fallback.js?v=1" defer></script>
+<script>
+// assets/js/teacher.js - nowa, przepisana wersja
+(function () {
+  const root = document.getElementById('teacher-root');
+  if (!root) {
+    console.error('[teacher.js] BŁĄD: Nie znaleziono elementu #teacher-root. Skrypt nie działa.');
+    return;
+  }
+
+  const API = root.dataset.api;
+  const CSRF = root.dataset.csrf;
+  const CLASS_ID = root.dataset.classId;
+  const SUBJECT_ID = root.dataset.subjectId;
+  const TERM_ID = root.dataset.termId;
+
+  const log = (msg, ...args) => console.log(`%c[teacher.js] ${msg}`, 'color:#7c3aed;font-weight:700', ...args);
+  const showFlashMessage = (type, message) => {
+    const flashDiv = document.createElement('div');
+    flashDiv.className = type === 'success' ? 'success' : 'alert';
+    flashDiv.style.margin = '0 1.25rem 1rem';
+    flashDiv.innerHTML = `<p>${message}</p>`;
+    root.prepend(flashDiv);
+    setTimeout(() => flashDiv.remove(), 5000);
+  };
+
+  function fdBase() {
+    const fd = new FormData();
+    fd.append('csrf', CSRF);
+    fd.append('class_id', CLASS_ID);
+    fd.append('subject_id', SUBJECT_ID);
+    fd.append('term_id', TERM_ID);
+    return fd;
+  }
+
+  async function postData(action, data) {
+    const fd = fdBase();
+    fd.append('action', action);
+    for (const key in data) {
+      if (data.hasOwnProperty(key)) {
+        fd.append(key, data[key]);
+      }
+    }
+    log(`Wysyłam żądanie POST: ${action}`, Object.fromEntries(fd.entries()));
+    const response = await fetch(API, { method: 'POST', body: fd });
+    const json = await response.json();
+    log(`Odpowiedź z serwera dla ${action}`, json);
+    if (!response.ok || !json.ok) {
+      throw new Error(json.error || `Błąd serwera: ${response.status}`);
+    }
+    return json;
+  }
+
+  const renderGradeView = (grade, hasImproved) => {
+    if (!grade || grade.value_text === '') {
+      return '<span class="small-muted">—</span><button type="button" class="btn small edit-btn">Edytuj</button>';
+    }
+    const imprClass = hasImproved ? ' impr' : '';
+    const imprText = hasImproved ? ' ↻' : '';
+    return `<span class="pill${imprClass}">${grade.value_text}${imprText}</span>` +
+           `<button type="button" class="btn small impr-btn">Popraw</button>` +
+           `<button type="button" class="btn small del-btn">Usuń</button>`;
+  };
+
+  const renderEditForm = (gradeId, value, comment) => {
+    const gradeHtml = value ? escapeHtml(value) : '';
+    const commentHtml = comment ? escapeHtml(comment) : '';
+    const qgButtons = ['6','6+','5','5-','5+','4','4-','4+','3','3-','3+','2','2-','2+','1','1+','0','+','-']
+      .map(q => `<button type="button" data-val="${escapeHtml(q)}">${escapeHtml(q)}</button>`)
+      .join('');
+    
+    return `<div class="edit-form" data-grade-id="${gradeId}">
+      <div class="input-wrap">
+        <input class="input-grade" placeholder="np. 4+, 3, +, -" value="${gradeHtml}">
+      </div>
+      <div class="qg">${qgButtons}</div>
+      <div class="input-wrap">
+        <input class="input-comment" placeholder="Komentarz" value="${commentHtml}">
+      </div>
+      <div class="qg">
+        <button type="button" class="btn primary save-btn">Zapisz</button>
+        <button type="button" class="btn cancel-btn">Anuluj</button>
+      </div>
+    </div>`;
+  };
+  
+  const escapeHtml = (s) => (s || '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+
+  // Logika interakcji z tabelą
+  document.addEventListener('click', async (e) => {
+    const target = e.target;
+    const cell = target.closest('.cell');
+    if (!cell) return;
+
+    if (target.closest('.edit-btn')) {
+      const gradeId = cell.dataset.gradeId;
+      const gradeText = cell.querySelector('.pill')?.textContent || '';
+      const commentText = '';
+      
+      const formHtml = renderEditForm(gradeId, gradeText, commentText);
+      cell.innerHTML = formHtml;
+    } else if (target.closest('.cancel-btn')) {
+      const gradeId = cell.dataset.gradeId;
+      const gradeText = cell.querySelector('.input-grade')?.value || '';
+      const hasImproved = gradeText.includes('↻');
+      
+      const viewHtml = renderGradeView({ value_text: gradeText }, hasImproved);
+      cell.innerHTML = viewHtml;
+    } else if (target.closest('.save-btn')) {
+      const gradeId = cell.dataset.gradeId;
+      const assId = cell.dataset.assessmentId;
+      const studentId = cell.closest('tr').dataset.studentId;
+      
+      const valueText = cell.querySelector('.input-grade')?.value || '';
+      const comment = cell.querySelector('.input-comment')?.value || '';
+      
+      try {
+        const result = await postData('grade_set', {
+          assessment_id: assId,
+          student_id: studentId,
+          grade_id: gradeId,
+          value_text: valueText,
+          comment: comment
+        });
+        
+        cell.dataset.gradeId = result.grade.id;
+        cell.innerHTML = renderGradeView(result.grade, result.grade.improved_of_id !== null);
+        const avgCell = cell.closest('tr').querySelector('.avg');
+        if (avgCell) avgCell.textContent = result.avg;
+        showFlashMessage('success', 'Ocena zapisana pomyślnie.');
+      } catch (error) {
+        showFlashMessage('alert', error.message);
+      }
+    } else if (target.closest('.impr-btn')) {
+      const gradeId = cell.dataset.gradeId;
+      const studentId = cell.closest('tr').dataset.studentId;
+      const newValue = prompt('Wpisz nową ocenę:');
+      if (newValue === null) return;
+      try {
+        const result = await postData('grade_improve', {
+          grade_id: gradeId,
+          value_text: newValue
+        });
+        cell.dataset.gradeId = result.grade.id;
+        cell.innerHTML = renderGradeView(result.grade, true);
+        const avgCell = cell.closest('tr').querySelector('.avg');
+        if (avgCell) avgCell.textContent = result.avg;
+        showFlashMessage('success', 'Ocena poprawiona.');
+      } catch (error) {
+        showFlashMessage('alert', error.message);
+      }
+    } else if (target.closest('.del-btn')) {
+      const gradeId = cell.dataset.gradeId;
+      const studentId = cell.closest('tr').dataset.studentId;
+      if (!gradeId || !confirm('Usunąć tę ocenę?')) return;
+      try {
+        const result = await postData('grade_delete', { grade_id: gradeId });
+        cell.dataset.gradeId = '';
+        cell.innerHTML = renderGradeView({ value_text: '' }, false);
+        const avgCell = cell.closest('tr').querySelector('.avg');
+        if (avgCell) avgCell.textContent = result.avg;
+        showFlashMessage('success', 'Usunięto ocenę.');
+      } catch (error) {
+        showFlashMessage('alert', error.message);
+      }
+    } else if (target.closest('.qg button')) {
+      const input = cell.querySelector('.input-grade');
+      if (input) {
+        input.value = target.dataset.val;
+        input.focus();
+      }
+    }
+  });
+
+  const addForm = document.getElementById('ass-add-form');
+  if (addForm) addForm.addEventListener('submit', handlers.handleAddColumn);
+
+  document.querySelectorAll('.summary-input').forEach(input => {
+    input.addEventListener('change', handlers.handleSummaryGradeChange);
+  });
+})();
+</script>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>
-
-
