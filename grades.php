@@ -1,5 +1,5 @@
 <?php
-// grades.php – podgląd ocen ucznia (nowy wygląd + jaskrawe kolory)
+// grades.php – podgląd ocen ucznia (z ostateczną poprawką błędu w średniej)
 require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/config/db.php';
 
@@ -51,63 +51,78 @@ try {
     $subjects = [];
 }
 
-// NOWA FUNKCJA Z JASKRAWYMI KOLORAMI
 function pillColor(array $grade): string {
-    // 1. Sprawdź kolor na podstawie nazwy kategorii
     $categoryName = strtolower($grade['cat_name'] ?? '');
     $categoryColors = [
-        'sprawdzian'      => '#ef4444', // Jaskrawa czerwień
-        'kartkówka'       => '#f97316', // Jaskrawy pomarańcz
-        'odpowiedź'       => '#eab308', // Jaskrawy żółty
-        'zadanie domowe'  => '#22c55e', // Jaskrawa zieleń
-        'aktywność'       => '#3b82f6', // Jaskrawy niebieski
+        'sprawdzian' => '#ef4444', 'kartkówka' => '#f97316', 'odpowiedź' => '#eab308',
+        'zadanie domowe' => '#22c55e', 'aktywność' => '#3b82f6',
     ];
     foreach ($categoryColors as $key => $color) {
-        if (strpos($categoryName, $key) !== false) {
-            return $color;
-        }
+        if (strpos($categoryName, $key) !== false) return $color;
     }
-
-    // 2. Jeśli kategoria nie pasuje, użyj wartości oceny jako fallback
     $val = strtoupper(trim($grade['value_text']));
-    if (in_array($val, ['1', '1+', '1-', 'NP', 'BZ', 'NB', '0'])) return '#ef4444'; // Czerwień
-    if (in_array($val, ['2', '2+', '2-', '3', '3-', '3+'])) return '#eab308';       // Żółty
-    if (in_array($val, ['4', '4+', '4-', '5', '5+', '5-', '6', '6+', '6-'])) return '#22c55e'; // Zielony
-    
-    // 3. Domyślny kolor
-    return '#9ca3af'; // Szary
+    if (in_array($val, ['1', '1+', '1-', 'NP', 'BZ', 'NB', '0'])) return '#ef4444';
+    if (in_array($val, ['2', '2+', '2-', '3', '3-', '3+'])) return '#eab308';
+    if (in_array($val, ['4', '4+', '4-', '5', '5+', '5-', '6', '6+', '6-'])) return '#22c55e';
+    return '#9ca3af';
 }
 
-function getGrades(PDO $pdo, int $studentId, int $subjectId, ?int $termId): array {
-    $sql = "SELECT g.*, gc.name AS cat_name, gc.code AS cat_code,
+function getGradesGrouped(PDO $pdo, int $studentId, int $subjectId, ?int $termId): array {
+    $sql = "SELECT g.*, gc.name AS cat_name, gc.code AS cat_code, a.title AS ass_title,
                    t.first_name AS tfn, t.last_name AS tln
             FROM grades g
+            LEFT JOIN assessments a ON a.id = g.assessment_id
             LEFT JOIN grade_categories gc ON gc.id = g.category_id
             LEFT JOIN users t ON t.id = g.teacher_id
             WHERE g.student_id = :sid AND g.subject_id = :sub
               AND g.kind = 'regular' ".
               ($termId ? " AND g.term_id = :term " : "") . "
               AND (g.published_at IS NULL OR g.published_at <= NOW())
-            ORDER BY g.created_at";
+            ORDER BY g.assessment_id, g.created_at";
     $stmt = $pdo->prepare($sql);
     $params = [':sid' => $studentId, ':sub' => $subjectId];
     if ($termId) $params[':term'] = $termId;
     $stmt->execute($params);
-    return $stmt->fetchAll();
+    
+    $grouped = [];
+    foreach($stmt->fetchAll() as $grade) {
+        $grouped[$grade['assessment_id']][] = $grade;
+    }
+    return $grouped;
 }
 
 function computeGradesAvg(PDO $pdo, int $studentId, int $subjectId, ?int $termId): string {
-  $sql = "SELECT g.value_numeric, g.weight FROM grades g
-          WHERE g.student_id=:st AND g.subject_id=:sub AND g.kind='regular' AND g.counts_to_avg=1"
+  // POPRAWKA: Dodano g.assessment_id do zapytania SELECT
+  $sql = "SELECT g.value_numeric, g.weight, g.assessment_id FROM grades g
+          JOIN assessments a ON g.assessment_id = a.id
+          WHERE g.student_id=:st AND g.subject_id=:sub AND g.kind='regular' AND a.counts_to_avg=1"
           . ($termId ? " AND g.term_id=:term" : "");
   $stmt = $pdo->prepare($sql);
   $par = [':st'=>$studentId, ':sub'=>$subjectId];
   if ($termId) $par[':term']=$termId;
   $stmt->execute($par);
-  $sum=0; $w=0;
-  foreach ($stmt as $r){ $sum += (float)$r['value_numeric']*(float)$r['weight']; $w += (float)$r['weight']; }
-  if ($w<=0) return '—';
-  return number_format($sum/$w, 2, '.', '');
+
+  $grades_by_assessment = [];
+    foreach ($stmt as $row) {
+        if ($row['value_numeric'] !== null) {
+            $grades_by_assessment[$row['assessment_id']]['values'][] = (float)$row['value_numeric'];
+            $grades_by_assessment[$row['assessment_id']]['weight'] = (float)$row['weight'];
+        }
+    }
+    
+    $total_sum = 0;
+    $total_weight = 0;
+    
+    foreach ($grades_by_assessment as $ass_id => $data) {
+        if (!empty($data['values'])) {
+            $avg_for_assessment = array_sum($data['values']) / count($data['values']);
+            $total_sum += $avg_for_assessment * $data['weight'];
+            $total_weight += $data['weight'];
+        }
+    }
+
+  if ($total_weight <= 0) return '—';
+  return number_format($total_sum / $total_weight, 2, '.', '');
 }
 
 $pdo->prepare("UPDATE users SET last_grades_seen_at = NOW() WHERE id=:id")->execute([':id'=>$user['id']]);
@@ -166,24 +181,37 @@ include __DIR__ . '/includes/header.php';
                 
                 <td>
                   <?php 
-                    $grades_t1 = getGrades($pdo, $user['id'], $sid, $t1_id);
-                    if (!$grades_t1) echo '<span class="muted">Brak ocen</span>';
-                    foreach ($grades_t1 as $gr) {
-                      $color = pillColor($gr);
-                      $titleData = [
-                        'Kategoria'   => $gr['cat_name'] ?: '—',
-                        'Data'        => (new DateTime($gr['created_at']))->format('Y-m-d'),
-                        'Nauczyciel'  => trim(($gr['tfn']??'').' '.($gr['tln']??'')) ?: '—',
-                        'Waga'        => rtrim(rtrim((string)$gr['weight'], '0'),'.'),
-                        'Do średniej' => $gr['counts_to_avg'] ? 'tak' : 'nie',
-                        'Komentarz'   => $gr['comment'] ?: '—',
-                        'Ocena'       => $gr['value_text']
-                      ];
-                      echo sprintf(
-                        '<span class="grade-pill" style="--pill-bg:%s; --pill-color:%s;" data-cat="%s" data-date="%s" data-teacher="%s" data-weight="%s" data-avg="%s" data-comment="%s">%s</span>',
-                        $color, '#fff',
-                        ...array_map('sanitize', array_values($titleData))
-                      );
+                    $grades_t1 = getGradesGrouped($pdo, $user['id'], $sid, $t1_id);
+                    if (empty($grades_t1)) echo '<span class="muted">Brak ocen</span>';
+                    
+                    foreach ($grades_t1 as $assessment_group) {
+                        echo '<div class="grade-group">';
+                        if (count($assessment_group) > 1) { echo '<span class="group-bracket">[</span>'; }
+
+                        foreach ($assessment_group as $idx => $gr) {
+                            $color = pillColor($gr);
+                            $args = [
+                                'color' => $color,
+                                'title' => $gr['ass_title'] ?: '—',
+                                'cat' => $gr['cat_name'] ?: '—',
+                                'date' => (new DateTime($gr['created_at']))->format('Y-m-d'),
+                                'teacher' => trim(($gr['tfn'] ?? '') . ' ' . ($gr['tln'] ?? '')) ?: '—',
+                                'weight' => rtrim(rtrim((string)$gr['weight'], '0'), '.'),
+                                'comment' => $gr['comment'] ?: '—',
+                                'value' => $gr['value_text']
+                            ];
+                            $sanitized_args = array_map('sanitize', $args);
+                            echo vsprintf(
+                                '<span class="grade-pill" style="--pill-bg:%s;" data-title="%s" data-cat="%s" data-date="%s" data-teacher="%s" data-weight="%s" data-comment="%s">%s</span>',
+                                $sanitized_args
+                            );
+
+                            if (count($assessment_group) > 1 && $idx < count($assessment_group) - 1) {
+                                echo '<span class="group-arrow">→</span>';
+                            }
+                        }
+                        if (count($assessment_group) > 1) { echo '<span class="group-bracket">]</span>'; }
+                        echo '</div>';
                     }
                   ?>
                 </td>
@@ -192,24 +220,37 @@ include __DIR__ . '/includes/header.php';
                 <?php if ($hasTwoTerms): ?>
                   <td>
                     <?php 
-                      $grades_t2 = getGrades($pdo, $user['id'], $sid, $t2_id);
-                      if (!$grades_t2) echo '<span class="muted">Brak ocen</span>';
-                      foreach ($grades_t2 as $gr) {
-                        $color = pillColor($gr);
-                        $titleData = [
-                          'Kategoria'   => $gr['cat_name'] ?: '—',
-                          'Data'        => (new DateTime($gr['created_at']))->format('Y-m-d'),
-                          'Nauczyciel'  => trim(($gr['tfn']??'').' '.($gr['tln']??'')) ?: '—',
-                          'Waga'        => rtrim(rtrim((string)$gr['weight'], '0'),'.'),
-                          'Do średniej' => $gr['counts_to_avg'] ? 'tak' : 'nie',
-                          'Komentarz'   => $gr['comment'] ?: '—',
-                          'Ocena'       => $gr['value_text']
-                        ];
-                         echo sprintf(
-                          '<span class="grade-pill" style="--pill-bg:%s; --pill-color:%s;" data-cat="%s" data-date="%s" data-teacher="%s" data-weight="%s" data-avg="%s" data-comment="%s">%s</span>',
-                          $color, '#fff',
-                          ...array_map('sanitize', array_values($titleData))
-                        );
+                      $grades_t2 = getGradesGrouped($pdo, $user['id'], $sid, $t2_id);
+                      if (empty($grades_t2)) echo '<span class="muted">Brak ocen</span>';
+                      
+                      foreach ($grades_t2 as $assessment_group) {
+                          echo '<div class="grade-group">';
+                          if (count($assessment_group) > 1) { echo '<span class="group-bracket">[</span>'; }
+
+                          foreach ($assessment_group as $idx => $gr) {
+                              $color = pillColor($gr);
+                              $args = [
+                                  'color' => $color,
+                                  'title' => $gr['ass_title'] ?: '—',
+                                  'cat' => $gr['cat_name'] ?: '—',
+                                  'date' => (new DateTime($gr['created_at']))->format('Y-m-d'),
+                                  'teacher' => trim(($gr['tfn'] ?? '') . ' ' . ($gr['tln'] ?? '')) ?: '—',
+                                  'weight' => rtrim(rtrim((string)$gr['weight'], '0'), '.'),
+                                  'comment' => $gr['comment'] ?: '—',
+                                  'value' => $gr['value_text']
+                              ];
+                              $sanitized_args = array_map('sanitize', $args);
+                              echo vsprintf(
+                                  '<span class="grade-pill" style="--pill-bg:%s;" data-title="%s" data-cat="%s" data-date="%s" data-teacher="%s" data-weight="%s" data-comment="%s">%s</span>',
+                                  $sanitized_args
+                              );
+                              
+                              if (count($assessment_group) > 1 && $idx < count($assessment_group) - 1) {
+                                  echo '<span class="group-arrow">→</span>';
+                              }
+                          }
+                          if (count($assessment_group) > 1) { echo '<span class="group-bracket">]</span>'; }
+                          echo '</div>';
                       }
                     ?>
                   </td>
@@ -224,4 +265,60 @@ include __DIR__ . '/includes/header.php';
     <?php endif; ?>
   </section>
 </main>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  let tooltipElement = null;
+
+  function createTooltip() {
+    if (tooltipElement) return;
+    tooltipElement = document.createElement('div');
+    tooltipElement.className = 'grade-tooltip';
+    document.body.appendChild(tooltipElement);
+  }
+
+  function showTooltip(pill) {
+    createTooltip();
+    
+    const data = {
+      'Tytuł': pill.dataset.title || '—',
+      'Kategoria': pill.dataset.cat || '—',
+      'Data': pill.dataset.date || '—',
+      'Nauczyciel': pill.dataset.teacher || '—',
+      'Waga': pill.dataset.weight || '—',
+      'Komentarz': pill.dataset.comment || '—'
+    };
+
+    tooltipElement.innerHTML = Object.entries(data)
+      .map(([key, value]) => `<div class="row"><span>${key}:</span><strong>${value}</strong></div>`)
+      .join('');
+
+    const pillRect = pill.getBoundingClientRect();
+    tooltipElement.classList.add('visible');
+    const tooltipRect = tooltipElement.getBoundingClientRect();
+
+    let top = pillRect.top - tooltipRect.height - 10;
+    let left = pillRect.left + (pillRect.width / 2) - (tooltipRect.width / 2);
+
+    if (top < 10) top = pillRect.bottom + 10;
+    if (left < 10) left = 10;
+    if (left + tooltipRect.width > window.innerWidth - 10) {
+      left = window.innerWidth - tooltipRect.width - 10;
+    }
+
+    tooltipElement.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
+  }
+
+  function hideTooltip() {
+    if (tooltipElement) tooltipElement.classList.remove('visible');
+  }
+
+  document.querySelectorAll('.grade-pill').forEach(pill => {
+      pill.addEventListener('mouseenter', () => showTooltip(pill));
+      pill.addEventListener('mouseleave', hideTooltip);
+  });
+
+  window.addEventListener('scroll', hideTooltip, true);
+  window.addEventListener('resize', hideTooltip, true);
+});
+</script>
 <?php include __DIR__ . '/includes/footer.php'; ?>

@@ -62,83 +62,64 @@ h1{ color:#0f172a; margin: .2rem 0 1rem 0; font-size:1.6rem; }
 .student-bar{ display:flex; gap:1.25rem; align-items:center; margin-bottom:.75rem; color:#374151; }
 .student-bar .avatar{ width:42px;height:42px;border-radius:999px;background:#e5e7eb;display:inline-block; }
 
-/* === NOWE STYLE TABELI (SZARE TŁO, OSTRE KRAWĘDZIE) === */
 .grades-table-wrap{ overflow-x:auto; border: 1px solid var(--app-border); border-radius: 0; }
 .grades-table{ width:100%; border-collapse:collapse; }
 
 .grades-table thead th {
-  background: #f3f4f6; /* Szare tło nagłówka */
-  color: #374151;
-  font-weight: 700;
-  padding: .6rem .8rem;
-  border-bottom: 1px solid var(--app-border);
+  background: #f3f4f6; color: #374151; font-weight: 700;
+  padding: .6rem .8rem; border-bottom: 1px solid var(--app-border);
   border-left: 1px solid var(--app-border);
 }
 .grades-table thead th:first-child { border-left: 0; }
 .grades-table .summary-head { text-align: center; }
-
-.grades-table tbody tr { background: #ffffff; } /* Białe tło dla wszystkich wierszy */
-
+.grades-table tbody tr { background: #ffffff; }
 .grades-table th, .grades-table td {
-  padding: .4rem .6rem;
-  border-left: 1px solid var(--app-border);
-  vertical-align: middle;
-  text-align: left;
+  padding: .4rem .6rem; border-left: 1px solid var(--app-border);
+  vertical-align: middle; text-align: left;
 }
 .grades-table td { min-width: 120px; }
 .grades-table th:first-child, .grades-table td:first-child { border-left: 0; }
 .grades-table tbody tr { border-bottom: 1px solid var(--app-border); }
 .grades-table tbody tr:last-child { border-bottom: 0; }
-
-.grades-table .sticky {
-  position: sticky;
-  left: 0;
-  z-index: 2;
-  background: inherit;
-  min-width: 180px;
-}
+.grades-table .sticky { position: sticky; left: 0; z-index: 2; background: inherit; min-width: 180px; }
 .grades-table .subj-name { font-weight: 600; white-space: nowrap; }
 
 .grade-pill {
-  --pill-bg: #9ca3af;
-  --pill-color: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; margin: 2px;
+  border-radius: 0; background: var(--pill-bg); color: #fff;
+  border: none; font-weight: 700; font-size: 0.95rem; cursor: pointer;
+}
+.grade-group {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  margin: 2px;
-  border-radius: 0; /* Ostre krawędzie */
-  background: var(--pill-bg);
-  color: var(--pill-color);
-  border: none;
-  font-weight: 700;
-  font-size: 0.95rem;
-  cursor: pointer;
+  vertical-align: middle;
+  margin: 0 2px;
+}
+.group-bracket {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #9ca3af;
+}
+.group-arrow {
+    font-weight: bold;
+    color: #6b7280;
+    margin: 0 2px;
 }
 
 .grades-table .summary, .grades-table .final-avg {
-  text-align: center;
-  font-weight: 700;
-  font-size: 1.1rem;
-  color: #374151;
-  min-width: 80px;
-  max-width: 100px;
+  text-align: center; font-weight: 700; font-size: 1.1rem;
+  color: #374151; min-width: 80px; max-width: 100px;
 }
-.grades-table .final-avg {
-  background-color: #f9fafb;
-}
+.grades-table .final-avg { background-color: #f9fafb; }
 
 .grade-tooltip {
   position: fixed; top: 0; left: 0; bottom: auto;
-  z-index: 9999;
-  background: #fff; color: #374151;
+  z-index: 9999; background: #fff; color: #374151;
   border: 1px solid var(--app-border); border-radius: 10px;
-  padding: .65rem .8rem;
-  box-shadow: 0 14px 42px rgba(0,0,0,.12);
+  padding: .65rem .8rem; box-shadow: 0 14px 42px rgba(0,0,0,.12);
   max-width: 320px; font-size: 0.95rem;
-  pointer-events: none;
-  visibility: hidden; opacity: 0;
+  pointer-events: none; visibility: hidden; opacity: 0;
   transition: opacity .15s ease, visibility .15s ease;
   will-change: transform, opacity;
 }

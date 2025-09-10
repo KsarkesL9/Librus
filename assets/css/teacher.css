@@ -15,8 +15,16 @@
 .grd .student{ white-space:nowrap; font-weight:700; }
 .grd .avg{ text-align:center; font-weight:800; background:#f8fafc; }
 
-.ass-head{ display:flex; align-items:center; gap:.35rem; }
-.ass-meta{ display:block; color:#6b7280; font-size:.85rem; line-height:1.15; }
+.ass-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:.35rem; }
+.ass-meta{ display:block; color:#6b7280; font-size:.85rem; line-height:1.15; margin-top:2px; }
+
+.ass-actions { display: flex; gap: .2rem; }
+.ass-action-btn {
+    border:0; background:transparent; padding:2px; cursor:pointer; opacity: 0.5;
+}
+.ass-action-btn:hover { opacity: 1; background: #e5e7eb; border-radius: 4px; }
+.ass-action-btn svg { width: 16px; height: 16px; display: block; color: #4b5563; }
+.ass-action-btn.delete-col:hover svg { color: #b91c1c; }
 
 .cell{ min-width:110px; text-align: center; position: relative; }
 .pill{ display:inline-block; min-width:26px; text-align:center; margin:.12rem; padding:.12rem .35rem; border-radius:6px; background:#eef2ff; border:1px solid #e5e7eb; font-weight:800; cursor: pointer; }

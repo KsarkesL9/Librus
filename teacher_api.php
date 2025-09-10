@@ -1,5 +1,5 @@
 <?php
-// teacher_api.php - OSTATECZNA WERSJA z kompletną logiką i lepszym debugowaniem
+// teacher_api.php - Wersja z poprawką przeliczania średniej po edycji wagi
 require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/config/db.php';
 
@@ -33,8 +33,6 @@ try {
 
     switch ($action) {
         
-        // --- LOGIKA DLA OKNA "Wystaw / Dodaj kolumnę" ---
-
         case 'ass_add_column':
             $title = trim($input['title'] ?? '');
             if (empty($title)) throw new Exception('Tytuł kolumny jest wymagany.');
@@ -53,13 +51,49 @@ try {
             echo json_encode(['ok' => true, 'message' => 'Kolumna została dodana.']);
             break;
 
+        case 'ass_update_column':
+            $assId = (int)($input['assessment_id'] ?? 0);
+            $title = trim($input['title'] ?? '');
+            $newWeight = (float)($input['weight'] ?? 1.0);
+            if (!$assId || empty($title)) throw new Exception('Tytuł i ID kolumny są wymagane.');
+            
+            // 1. Zaktualizuj kolumnę (assessment)
+            $stmt = $pdo->prepare("UPDATE assessments SET title=:title, category_id=:catid, weight=:w, issue_date=:idt WHERE id=:id AND teacher_id=:tid");
+            $stmt->execute([
+                ':title' => $title,
+                ':catid' => empty($input['category_id']) ? null : (int)$input['category_id'],
+                ':w' => $newWeight,
+                ':idt' => empty($input['issue_date']) ? date('Y-m-d') : $input['issue_date'],
+                ':id' => $assId,
+                ':tid' => $teacherId
+            ]);
+
+            // 2. Zaktualizuj wagi istniejących ocen w tej kolumnie
+            $updateGrades = $pdo->prepare("UPDATE grades SET weight = :w WHERE assessment_id = :id AND teacher_id = :tid");
+            $updateGrades->execute([':w' => $newWeight, ':id' => $assId, ':tid' => $teacherId]);
+
+            echo json_encode(['ok' => true, 'message' => 'Kolumna została zaktualizowana.']);
+            break;
+
+        case 'ass_delete_column':
+            $assId = (int)($input['assessment_id'] ?? 0);
+            if (!$assId) throw new Exception('Brak ID kolumny do usunięcia.');
+            
+            // Usunięcie ocen w kolumnie (opcjonalne, jeśli FK ma ON DELETE CASCADE)
+            $pdo->prepare("DELETE FROM grades WHERE assessment_id = ? AND teacher_id = ?")->execute([$assId, $teacherId]);
+            // Usunięcie samej kolumny
+            $pdo->prepare("DELETE FROM assessments WHERE id = ? AND teacher_id = ?")->execute([$assId, $teacherId]);
+            
+            echo json_encode(['ok' => true, 'message' => 'Kolumna i jej oceny zostały usunięte.']);
+            break;
+
         case 'grade_add_single':
             $title = trim($input['title'] ?? '');
             $studentId = (int)($input['student_id'] ?? 0);
             $valueText = trim($input['value_text'] ?? '');
 
             if (empty($title) || empty($studentId) || empty($valueText)) {
-                throw new Exception('Uczeń, ocena i tytuł są wymagane do dodania pojedynczej oceny.');
+                throw new Exception('Uczeń, ocena i tytuł są wymagane.');
             }
 
             $stmt = $pdo->prepare("INSERT INTO assessments (teacher_id, class_id, subject_id, term_id, title, category_id, weight, issue_date, counts_to_avg) VALUES (:tid, :cid, :sid, :termid, :title, :catid, :w, CURDATE(), 1)");
@@ -80,13 +114,11 @@ try {
             echo json_encode(['ok' => true, 'message' => 'Pojedyncza ocena została dodana.']);
             break;
 
-        // --- LOGIKA DLA OKNA EDYCJI (z plusika) ---
-
         case 'grade_add_or_improve':
             $assId = (int)($input['assessment_id'] ?? 0);
             $studentId = (int)($input['student_id'] ?? 0);
             $valueText = trim($input['value_text'] ?? '');
-            if (!$assId || !$studentId || $valueText === '') throw new Exception('Brak danych do dodania oceny (assId, studId, ocena).');
+            if (!$assId || !$studentId || $valueText === '') throw new Exception('Brak danych do dodania oceny.');
 
             $ass = $pdo->prepare("SELECT * FROM assessments WHERE id = ? AND teacher_id = ?");
             $ass->execute([$assId, $teacherId]);
@@ -134,8 +166,7 @@ try {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    http_response_code(400); // Zwracamy 400, bo to błąd zapytania
-    // Zwracamy dokładny komunikat błędu w JSON, co ułatwi debugowanie
+    http_response_code(400);
     echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
     exit;
 }

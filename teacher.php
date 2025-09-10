@@ -1,5 +1,5 @@
 <?php
-// teacher.php – Wersja z nowym wyświetlaniem ocen
+// teacher.php – Wersja z nowym wyświetlaniem ocen i edycją/usuwaniem kolumn
 require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/config/db.php';
 
@@ -106,6 +106,8 @@ include __DIR__ . '/includes/header.php';
 <main class="container">
     <section id="teacher-root" class="t-card"
              data-base-url="<?php echo $BASE_URL; ?>"
+             data-api-url="<?php echo $BASE_URL; ?>/teacher_api.php"
+             data-csrf-token="<?php echo csrf_token(); ?>"
              data-subject-id="<?php echo (int)$selectedSubjectId; ?>"
              data-class-id="<?php echo (int)$selectedClassId; ?>"
              data-term-id="<?php echo $selectedTermId !== null ? (int)$selectedTermId : ''; ?>">
@@ -154,7 +156,17 @@ include __DIR__ . '/includes/header.php';
                     <th class="sticky">Uczeń</th>
                     <?php foreach ($assessments as $a): ?>
                         <th>
-                            <div class="ass-head"><strong><?php echo sanitize($a['title']); ?></strong></div>
+                            <div class="ass-head">
+                                <strong><?php echo sanitize($a['title']); ?></strong>
+                                <div class="ass-actions">
+                                    <button class="ass-action-btn edit-col" title="Edytuj kolumnę" data-assessment-id="<?php echo (int)$a['id']; ?>">
+                                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.94 5L19 10.06 9.06 20H4v-5.06L13.94 5m.27-1.71L5.5 11.94l-1 4.5 4.5-1 8.66-8.66a2.25 2.25 0 0 0 0-3.18L14.72 1.94a2.25 2.25 0 0 0-3.18 0L10.82 2.7l3.18 3.18L14.72 5l-1.41-1.41-1.06 1.06 3.18 3.18 1.41-1.41-3.18-3.18 1.06-1.06z"/></svg>
+                                    </button>
+                                    <button class="ass-action-btn delete-col" title="Usuń kolumnę" data-assessment-id="<?php echo (int)$a['id']; ?>">
+                                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 3h6a1 1 0 0 1 1 1v1h4v2H4V5h4V4a1 1 0 0 1 1-1Zm-3 6h12l-1 11a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 9Z"/></svg>
+                                    </button>
+                                </div>
+                            </div>
                             <span class="ass-meta"><?php echo sanitize($a['issue_date']); ?> • waga <span class="badge-soft"><?php echo rtrim(rtrim((string)$a['weight'], '0'), '.'); ?></span></span>
                         </th>
                     <?php endforeach; ?>
