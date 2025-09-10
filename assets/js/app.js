@@ -146,4 +146,74 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // --- Tooltip ocen ---
+  let tooltipTimeout;
+  let tooltip = document.querySelector('.grade-tooltip');
+  if (!tooltip) {
+    tooltip = document.createElement('div');
+    tooltip.className = 'grade-tooltip hidden';
+    document.body.appendChild(tooltip);
+  }
+
+  document.addEventListener('mouseover', (e) => {
+    const gradePill = e.target.closest('.grade-pill');
+    if (gradePill) {
+      clearTimeout(tooltipTimeout);
+      const data = gradePill.dataset;
+      
+      const content = `
+        <div class="row"><strong>Kategoria:</strong><span>${escapeHtml(data.cat)}</span></div>
+        <div class="row"><strong>Data:</strong><span>${escapeHtml(data.date)}</span></div>
+        <div class="row"><strong>Nauczyciel:</strong><span>${escapeHtml(data.teacher)}</span></div>
+        <div class="row"><strong>Waga:</strong><span>${escapeHtml(data.weight)}</span></div>
+        <div class="row"><strong>Do średniej:</strong><span>${escapeHtml(data.avg)}</span></div>
+        <div class="row"><strong>Komentarz:</strong><span>${escapeHtml(data.comment)}</span></div>
+      `;
+      tooltip.innerHTML = content;
+
+      tooltipTimeout = setTimeout(() => {
+        tooltip.classList.remove('hidden');
+        const pillRect = gradePill.getBoundingClientRect();
+        const tooltipRect = tooltip.getBoundingClientRect();
+        
+        let top = pillRect.bottom + 10;
+        let left = pillRect.left + (pillRect.width / 2) - (tooltipRect.width / 2);
+
+        // Adjust position to stay within the viewport
+        if (top + tooltipRect.height > window.innerHeight) {
+            top = pillRect.top - tooltipRect.height - 10;
+        }
+        if (left < 0) {
+            left = 10;
+        } else if (left + tooltipRect.width > window.innerWidth) {
+            left = window.innerWidth - tooltipRect.width - 10;
+        }
+
+        tooltip.style.top = `${top + window.scrollY}px`;
+        tooltip.style.left = `${left + window.scrollX}px`;
+      }, 500); // 500ms delay
+    } else {
+      clearTimeout(tooltipTimeout);
+      tooltipTimeout = setTimeout(() => {
+        tooltip.classList.add('hidden');
+      }, 200); // 200ms delay to hide
+    }
+  });
+
+  document.addEventListener('mouseout', (e) => {
+    const gradePill = e.target.closest('.grade-pill');
+    if (!gradePill && !e.relatedTarget.closest('.grade-tooltip')) {
+      clearTimeout(tooltipTimeout);
+      tooltipTimeout = setTimeout(() => {
+        tooltip.classList.add('hidden');
+      }, 200);
+    }
+  });
+
+  tooltip.addEventListener('mouseenter', () => clearTimeout(tooltipTimeout));
+  tooltip.addEventListener('mouseleave', () => {
+    tooltipTimeout = setTimeout(() => {
+      tooltip.classList.add('hidden');
+    }, 200);
+  });
 }); // DOMContentLoaded

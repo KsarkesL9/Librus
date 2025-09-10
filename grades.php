@@ -62,8 +62,9 @@ function pillColor(string $val, ?string $catColor): string {
     if (in_array($v, ['NP','BZ','NB'])) return '#cbd5e1';
     return '#e5e7eb';
 }
+
 function getGrades(PDO $pdo, int $studentId, int $subjectId, ?int $termId): array {
-    $sql = "SELECT g.*, gc.name AS cat_name, gc.code AS cat_code, gc.color AS cat_color,
+    $sql = "SELECT g.*, gc.name AS cat_name, gc.code AS cat_code,
                    t.first_name AS tfn, t.last_name AS tln
             FROM grades g
             LEFT JOIN grade_categories gc ON gc.id = g.category_id
@@ -79,6 +80,7 @@ function getGrades(PDO $pdo, int $studentId, int $subjectId, ?int $termId): arra
     $stmt->execute($params);
     return $stmt->fetchAll();
 }
+
 function getSummaryGrade(PDO $pdo, int $studentId, int $subjectId, ?int $termId, string $kind): ?string {
     $sql = "SELECT value_text FROM grades
             WHERE student_id=:sid AND subject_id=:sub AND kind=:k ".
@@ -91,6 +93,21 @@ function getSummaryGrade(PDO $pdo, int $studentId, int $subjectId, ?int $termId,
     $row = $stmt->fetch();
     return $row ? $row['value_text'] : null;
 }
+
+function computeGradesAvg(PDO $pdo, int $studentId, int $subjectId, ?int $termId): string {
+  $sql = "SELECT g.value_numeric, g.weight FROM grades g
+          WHERE g.student_id=:st AND g.subject_id=:sub AND g.kind='regular' AND g.counts_to_avg=1"
+          . ($termId ? " AND g.term_id=:term" : "");
+  $stmt = $pdo->prepare($sql);
+  $par = [':st'=>$studentId, ':sub'=>$subjectId];
+  if ($termId) $par[':term']=$termId;
+  $stmt->execute($par);
+  $sum=0; $w=0;
+  foreach ($stmt as $r){ $sum += (float)$r['value_numeric']*(float)$r['weight']; $w += (float)$r['weight']; }
+  if ($w<=0) return '—';
+  return number_format($sum/$w, 2, '.', '');
+}
+
 
 // Po wejściu odznaczamy „nowe”
 $pdo->prepare("UPDATE users SET last_grades_seen_at = NOW() WHERE id=:id")->execute([':id'=>$user['id']]);
@@ -124,6 +141,7 @@ include __DIR__ . '/includes/header.php';
                 <th>Oceny bieżące</th>
                 <th>Podsum.</th>
               <?php endif; ?>
+              <th>Średnia</th>
             </tr>
             <tr>
               <th class="sticky">&nbsp;</th>
@@ -133,6 +151,7 @@ include __DIR__ . '/includes/header.php';
               <?php else: ?>
                 <th>Oceny bieżące</th><th class="summary-head">I/R</th>
               <?php endif; ?>
+              <th>&nbsp;</th>
             </tr>
           </thead>
           <tbody>
@@ -153,11 +172,10 @@ include __DIR__ . '/includes/header.php';
                 <th class="sticky subj-name"><?php echo sanitize($s['name']); ?></th>
 
                 <?php if ($hasTwoTerms): ?>
-                  <!-- Okres 1 -->
                   <td>
                     <?php if (!$g1): ?><span class="muted">Brak ocen</span><?php endif; ?>
                     <?php foreach ($g1 as $gr):
-                      $bg = pillColor($gr['value_text'], $gr['cat_color']);
+                      $bg = pillColor($gr['value_text'], $gr['cat_color'] ?? null);
                       $title = [
                         'Kategoria'   => $gr['cat_name'] ?: '—',
                         'Data'        => (new DateTime($gr['created_at']))->format('Y-m-d'),
@@ -183,11 +201,10 @@ include __DIR__ . '/includes/header.php';
                     <?php echo $sum1 ? '<span class="sum-pill">'.sanitize($sum1).'</span>' : '—'; ?>
                   </td>
 
-                  <!-- Okres 2 -->
                   <td>
                     <?php if (!$g2): ?><span class="muted">Brak ocen</span><?php endif; ?>
                     <?php foreach ($g2 as $gr):
-                      $bg = pillColor($gr['value_text'], $gr['cat_color']);
+                      $bg = pillColor($gr['value_text'], $gr['cat_color'] ?? null);
                       $title = [
                         'Kategoria'   => $gr['cat_name'] ?: '—',
                         'Data'        => (new DateTime($gr['created_at']))->format('Y-m-d'),
@@ -213,12 +230,11 @@ include __DIR__ . '/includes/header.php';
                     <?php echo $sum2 ? '<span class="sum-pill">'.sanitize($sum2).'</span>' : '—'; ?>
                   </td>
                 <?php else: ?>
-                  <!-- bez podziału na 2 okresy -->
                   <td>
                     <?php $gAll = getGrades($pdo, $user['id'], $sid, null);
                     if (!$gAll): ?><span class="muted">Brak ocen</span><?php endif; ?>
                     <?php foreach ($gAll as $gr):
-                      $bg = pillColor($gr['value_text'], $gr['cat_color']);
+                      $bg = pillColor($gr['value_text'], $gr['cat_color'] ?? null);
                       $title = [
                         'Kategoria'   => $gr['cat_name'] ?: '—',
                         'Data'        => (new DateTime($gr['created_at']))->format('Y-m-d'),
@@ -249,6 +265,11 @@ include __DIR__ . '/includes/header.php';
                     ?>
                   </td>
                 <?php endif; ?>
+                <td class="summary">
+                  <span class="sum-pill">
+                    <?php echo computeGradesAvg($pdo, $user['id'], $sid, null); ?>
+                  </span>
+                </td>
               </tr>
             <?php endforeach; ?>
           </tbody>
