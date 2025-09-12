@@ -5,7 +5,6 @@
   <div>&copy; <?php echo date('Y'); ?> Zenith Nexus.</div>
 </footer>
 
-<div class="modal-overlay" id="logout-modal">
 
 <div class="modal-overlay" id="logout-modal">
   <div class="modal-dialog">
