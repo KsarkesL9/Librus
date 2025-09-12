@@ -109,4 +109,33 @@ document.addEventListener('DOMContentLoaded', () => {
   // Ukryj tooltip przy przewijaniu lub zmianie rozmiaru okna
   window.addEventListener('scroll', hideTooltip, true);
   window.addEventListener('resize', hideTooltip, true);
+  
+  // === NOWA LOGIKA MODALA WYLOGOWANIA ===
+  const logoutLink = document.getElementById('logout-link');
+  const logoutModal = document.getElementById('logout-modal');
+  const logoutConfirmBtn = document.getElementById('logout-confirm');
+  const logoutCancelBtn = document.getElementById('logout-cancel');
+
+  if (logoutLink && logoutModal && logoutConfirmBtn && logoutCancelBtn) {
+    const showLogoutModal = (e) => {
+      e.preventDefault();
+      const logoutUrl = logoutLink.href;
+      logoutConfirmBtn.href = logoutUrl;
+      logoutModal.classList.add('visible');
+    };
+
+    const hideLogoutModal = () => {
+      logoutModal.classList.remove('visible');
+    };
+
+    logoutLink.addEventListener('click', showLogoutModal);
+    logoutCancelBtn.addEventListener('click', hideLogoutModal);
+
+    // Zamknij modal po kliknięciu na tło (overlay)
+    logoutModal.addEventListener('click', (e) => {
+      if (e.target === logoutModal) {
+        hideLogoutModal();
+      }
+    });
+  }
 });

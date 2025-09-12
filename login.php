@@ -46,11 +46,23 @@ if (empty($errors)) {
             'roles' => $roles
         ];
 		if (in_array('nauczyciel', $roles)) {
-        $_SESSION['teacher_id'] = (int)$user['id'];
+            $_SESSION['teacher_id'] = (int)$user['id'];
 		}
+        
+        // --- Nowa logika przekierowania po logowaniu ---
         $base = rtrim(str_replace('\\','/', dirname($_SERVER['PHP_SELF'])), '/');
         if ($base === '') { $base = '.'; }
-        header("Location: $base/dashboard.php");
+        
+        $redirectUrl = "$base/dashboard.php"; // Domyślny cel
+        if (in_array('uczeń', $roles)) {
+            $redirectUrl = "$base/grades.php";
+        } elseif (in_array('nauczyciel', $roles)) {
+            $redirectUrl = "$base/teacher.php";
+        } elseif (in_array('admin', $roles)) {
+            $redirectUrl = "$base/admin.php";
+        }
+
+        header("Location: $redirectUrl");
         exit;
     }
 }
