@@ -133,3 +133,10 @@ h1{ color:#0f172a; margin: .2rem 0 1rem 0; font-size:1.6rem; }
 
 .form .input-wrap{ background:#fff; }
 .muted{ color: var(--app-muted); }
+
+/* --- NOWY KOD NAPRAWCZY DLA MODALA --- */
+.modal-overlay .modal-dialog {
+  display: block; /* Upewnij się, że dialog jest widoczny */
+  visibility: visible;
+  opacity: 1;
+}

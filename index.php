@@ -10,10 +10,9 @@ include __DIR__ . '/includes/header.php';
 <main class="container auth-center">
   <section class="card login-card">
     <div class="logo-wrap">
-      <div class="logo-circle">S</div>
-      <div class="logo-text"><span class="logo-small">LIBRUS</span><span class="logo-big">Synergia</span></div>
+      <img src="<?php echo $BASE_URL; ?>/assets/img/logo_full.png" alt="Zenith Nexus Logo" style="height: 80px;">
     </div>
-    <h1>Zaloguj się do systemu Synergia</h1>
+    <h1>Zaloguj się do systemu Zenith Nexus</h1>
 
     <?php if (!empty($errors)): ?>
       <div class="alert">

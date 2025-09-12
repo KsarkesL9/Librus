@@ -113,29 +113,38 @@ document.addEventListener('DOMContentLoaded', () => {
   // === NOWA LOGIKA MODALA WYLOGOWANIA ===
   const logoutLink = document.getElementById('logout-link');
   const logoutModal = document.getElementById('logout-modal');
-  const logoutConfirmBtn = document.getElementById('logout-confirm');
-  const logoutCancelBtn = document.getElementById('logout-cancel');
 
-  if (logoutLink && logoutModal && logoutConfirmBtn && logoutCancelBtn) {
-    const showLogoutModal = (e) => {
-      e.preventDefault();
-      const logoutUrl = logoutLink.href;
-      logoutConfirmBtn.href = logoutUrl;
-      logoutModal.classList.add('visible');
-    };
+  // Sprawdzamy, czy kluczowe elementy istnieją w DOM
+  if (logoutLink && logoutModal) {
+    const logoutConfirmBtn = document.getElementById('logout-confirm');
+    const logoutCancelBtn = document.getElementById('logout-cancel');
 
-    const hideLogoutModal = () => {
-      logoutModal.classList.remove('visible');
-    };
+    if (logoutConfirmBtn && logoutCancelBtn) {
+      const showLogoutModal = (e) => {
+        e.preventDefault(); // Zatrzymujemy domyślną akcję linku
+        const logoutUrl = logoutLink.href;
+        logoutConfirmBtn.href = logoutUrl;
+        logoutModal.classList.add('visible');
+      };
 
-    logoutLink.addEventListener('click', showLogoutModal);
-    logoutCancelBtn.addEventListener('click', hideLogoutModal);
+      const hideLogoutModal = () => {
+        logoutModal.classList.remove('visible');
+      };
 
-    // Zamknij modal po kliknięciu na tło (overlay)
-    logoutModal.addEventListener('click', (e) => {
-      if (e.target === logoutModal) {
-        hideLogoutModal();
-      }
-    });
+      // Podpinamy event listenery
+      logoutLink.addEventListener('click', showLogoutModal);
+      logoutCancelBtn.addEventListener('click', hideLogoutModal);
+      logoutModal.addEventListener('click', (e) => {
+        // Zamyka modal po kliknięciu w tło
+        if (e.target === logoutModal) {
+          hideLogoutModal();
+        }
+      });
+      console.log('Zenith Nexus: Logika modala wylogowania została poprawnie załadowana.');
+    } else {
+      console.error('Zenith Nexus: Nie znaleziono przycisków potwierdzenia lub anulowania w modalu.');
+    }
+  } else {
+    console.error('Zenith Nexus: Nie znaleziono linku wylogowania (#logout-link) lub kontenera modala (#logout-modal).');
   }
 });

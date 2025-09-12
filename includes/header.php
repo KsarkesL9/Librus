@@ -33,7 +33,7 @@ $BODY_CLASS = isset($APP_BODY_CLASS) ? $APP_BODY_CLASS : '';
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Librus</title>
+  <title>Zenith Nexus</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -49,8 +49,8 @@ $BODY_CLASS = isset($APP_BODY_CLASS) ? $APP_BODY_CLASS : '';
   <div class="topbar">
     <div class="topbar-inner">
       <a class="brand" href="<?php echo $BASE_URL; ?>/dashboard.php" title="Strona główna">
-        <span class="brand-mark">S</span>
-        <span>Librus</span><span class="brand-sub">Synergia</span>
+        <img src="<?php echo $BASE_URL; ?>/assets/img/logo_simple.png" alt="Zenith Nexus Logo" style="height: 36px;">
+        <span style="font-size: 1.2rem; font-weight: 800; color: #fff;">Zenith Nexus</span>
       </a>
 
       <nav class="nav-icons">
